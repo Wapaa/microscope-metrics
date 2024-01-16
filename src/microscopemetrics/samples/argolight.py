@@ -2,6 +2,7 @@ from datetime import datetime
 from itertools import product
 from typing import Any, Dict, List, Tuple, Union
 
+import microscopemetrics_schema.datamodel as mm_schema
 import numpy as np
 import pandas as pd
 from numpy import float64, int64, ndarray
@@ -11,13 +12,12 @@ from scipy.optimize import curve_fit
 from scipy.signal import find_peaks
 from skimage.transform import hough_line  # hough_line_peaks, probabilistic_hough_line
 
-import microscopemetrics_schema.datamodel as mm_schema
 from microscopemetrics.analysis.tools import (
     compute_distances_matrix,
     compute_spots_properties,
     segment_image,
 )
-from microscopemetrics.samples import AnalysisMixin, logger
+from microscopemetrics.samples import AnalysisMixin, logger, numpy_to_image_byref
 from microscopemetrics.utilities.utilities import airy_fun, is_saturated, multi_airy_fun
 
 
@@ -64,8 +64,8 @@ class ArgolightBAnalysis(mm_schema.ArgolightBDataset, AnalysisMixin):
             high_corr_factors=self.input.upper_threshold_correction_factors,
         )
 
-        self.output.spots_labels_image = mm_schema.ImageAsNumpy(  # TODO: this should be a mask
-            data=labels,
+        self.output.spots_labels_image = numpy_to_image_byref(  # TODO: this should be a mask
+            array=labels,
             name=f"{self.input.argolight_b_image.name}_spots_labels",
             description=f"Spots labels of {self.input.argolight_b_image.image_url}",
             image_url=self.input.argolight_b_image.image_url,
@@ -108,9 +108,13 @@ class ArgolightBAnalysis(mm_schema.ArgolightBDataset, AnalysisMixin):
             ch_properties_kv["channel"] = ch
             ch_properties_kv["nr_of_spots"] = len(ch_df)
             ch_properties_kv["intensity_max_spot"] = ch_df["integrated_intensity"].max().item()
-            ch_properties_kv["intensity_max_spot_roi"] = ch_df["integrated_intensity"].argmax().item()
+            ch_properties_kv["intensity_max_spot_roi"] = (
+                ch_df["integrated_intensity"].argmax().item()
+            )
             ch_properties_kv["intensity_min_spot"] = ch_df["integrated_intensity"].min().item()
-            ch_properties_kv["intensity_min_spot_roi"] = ch_df["integrated_intensity"].argmin().item()
+            ch_properties_kv["intensity_min_spot_roi"] = (
+                ch_df["integrated_intensity"].argmin().item()
+            )
             ch_properties_kv["mean_intensity"] = ch_df["integrated_intensity"].mean().item()
             ch_properties_kv["median_intensity"] = ch_df["integrated_intensity"].median().item()
             ch_properties_kv["std_mean_intensity"] = ch_df["integrated_intensity"].std().item()
